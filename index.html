@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Calculadora de Calorias</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+
+    background:
+        linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)),
+        url('fundo.png');
+
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #000;
+
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.container {
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(10px);
+    padding: 25px;
+    width: 320px;
+    border-radius: 15px;
+    text-align: center;
+    color: white;
+}
+
+h2 {
+    margin-bottom: 10px;
+}
+
+.sub {
+    font-size: 13px;
+    color: #ccc;
+    margin-bottom: 15px;
+}
+
+input {
+    width: 90%;
+    padding: 12px;
+    margin: 6px;
+    border-radius: 8px;
+    border: none;
+}
+
+button {
+    width: 95%;
+    padding: 12px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: none;
+    background: #00c853;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.result {
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+.contador {
+    color: #ff5252;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.link {
+    display: block;
+    margin-top: 12px;
+    background: #ff9800;
+    padding: 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: white;
+    font-weight: bold;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Desinche em até 21 dias</h2>
+<p class="sub">
+Descubra quantas calorias você precisa e comece hoje
+</p>
+
+<input id="peso" placeholder="Peso (kg)">
+<input id="altura" placeholder="Altura (cm)">
+<input id="idade" placeholder="Idade">
+
+<button onclick="calcular()">Calcular agora</button>
+
+<div class="result" id="resultado"></div>
+
+</div>
+
+<script>
+
+let tempo = 600;
+
+function iniciarContador() {
+    function atualizar() {
+        let minutos = Math.floor(tempo / 60);
+        let segundos = tempo % 60;
+
+        let contador = document.getElementById("contador");
+
+        if (contador) {
+            contador.innerHTML =
+                "⏳ Oferta expira em: " +
+                minutos + ":" + (segundos < 10 ? "0" : "") + segundos;
+        }
+
+        tempo--;
+
+        if (tempo >= 0) {
+            setTimeout(atualizar, 1000);
+        }
+    }
+
+    atualizar();
+}
+
+function calcular() {
+    let peso = parseFloat(document.getElementById("peso").value);
+    let altura = parseFloat(document.getElementById("altura").value);
+    let idade = parseInt(document.getElementById("idade").value);
+
+    if (!peso || !altura || !idade) {
+        document.getElementById("resultado").innerHTML = "Preencha todos os campos!";
+        return;
+    }
+
+    let tmb = 10 * peso + 6.25 * altura - 5 * idade + 5;
+    let calorias = tmb * 1.55;
+    let emagrecer = calorias - 500;
+
+    document.getElementById("resultado").innerHTML =
+        "🔥 Seu corpo precisa de <b>" + calorias.toFixed(0) + " kcal</b><br>" +
+        "⚡ Para emagrecer: <b>" + emagrecer.toFixed(0) + " kcal</b><br><br>" +
+
+        "👉 Agora que você sabe isso...<br>" +
+        "<b>imagine ter um plano completo pronto pra você</b>" +
+
+        "<a class='link' href='https://go.hotmart.com/I105631034U?dp=1' target='_blank'>" +
+        "👉 Quero desinchar em 21 dias</a>" +
+
+        "<div id='contador' class='contador'></div>";
+
+    iniciarContador();
+}
+
+</script>
+
+</body>
+</html>
