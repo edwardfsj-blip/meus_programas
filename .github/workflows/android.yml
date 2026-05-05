@@ -31,6 +31,10 @@ jobs:
           echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
           echo "PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
 
+      - name: Install SDK packages
+        run: |
+          sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0"
+
       - name: Accept licenses
         run: |
           yes | sdkmanager --licenses
