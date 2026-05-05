@@ -1,51 +1,31 @@
 name: Build APK
 
-on:
-  push:
-    branches: [ "main" ]
+on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Install system deps
-      run: |
-        sudo apt update
-        sudo apt install -y \
-          python3-pip git zip unzip openjdk-17-jdk \
-          autoconf libtool pkg-config \
-          zlib1g-dev libncurses5-dev libncursesw5-dev \
-          libtinfo5 cmake libffi-dev libssl-dev
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    - name: Install Python deps
-      run: |
-        pip install --upgrade pip
-        pip install buildozer cython
+      - name: Install deps
+        run: |
+          sudo apt update
+          sudo apt install -y zip unzip openjdk-17-jdk
+          pip install buildozer
 
-    # ⚠️ importante: evitar prompt interativo
-    - name: Prepare buildozer
-      run: |
-        export BUILDOZER_WARN_ON_ROOT=0
-        if [ ! -f buildozer.spec ]; then
-          buildozer init
-        fi
+      - name: Create spec (if not exists)
+        run: |
+          if [ ! -f buildozer.spec ]; then
+            buildozer init
+          fi
 
-    # ⚠️ use verbose para logs úteis
-    - name: Build APK (verbose)
-      run: |
-        export BUILDOZER_WARN_ON_ROOT=0
-        buildozer -v android debug
-
-    # ⚠️ só tenta subir se existir apk
-    - name: Upload APK
-      if: success()
-      uses: actions/upload-artifact@v3
-      with:
-        name: apk
-        path: |
-          bin/*.apk
-          **/bin/*.apk
+      - name: Build APK
+        run: |
+          buildozer android debug
