@@ -2,7 +2,8 @@ name: Build APK
 
 on:
 push:
-branches: [ "main" ]
+branches:
+- main
 
 jobs:
 build:
@@ -16,15 +17,12 @@ steps:
   - name: Setup Python
     uses: actions/setup-python@v4
     with:
-      python-version: '3.10'
+      python-version: "3.10"
 
   - name: Install system deps
     run: |
       sudo apt update
-      sudo apt install -y \
-        zip unzip openjdk-17-jdk wget \
-        autoconf automake libtool pkg-config \
-        libffi-dev libssl-dev
+      sudo apt install -y zip unzip openjdk-17-jdk wget autoconf automake libtool pkg-config libffi-dev libssl-dev
 
   - name: Install Python deps
     run: |
@@ -49,4 +47,3 @@ steps:
       path: |
         bin/*.apk
         **/bin/*.apk
-```
