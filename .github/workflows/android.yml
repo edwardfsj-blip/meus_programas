@@ -8,9 +8,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
@@ -19,7 +21,10 @@ jobs:
           sudo apt update
           sudo apt install -y zip unzip openjdk-17-jdk wget \
           autoconf automake libtool pkg-config \
-          libffi-dev libssl-dev
+          libffi-dev libssl-dev \
+          build-essential \
+          libltdl-dev \
+          zlib1g-dev
 
       - name: Install Android SDK
         run: |
@@ -40,8 +45,9 @@ jobs:
 
       - name: Install Python deps
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install buildozer cython
 
       - name: Build APK
-        run: buildozer android debug
+        run: |
+          buildozer android debug
