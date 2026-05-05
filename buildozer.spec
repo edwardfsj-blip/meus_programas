@@ -2,7 +2,8 @@
 title = MeuApp
 package.name = meuapp
 package.domain = org.meuapp
-
+version = 0.1
+orientation = portrait
 source.dir = .
 source.include_exts = py,png,jpg,kv,json
 
