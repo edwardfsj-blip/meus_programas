@@ -19,23 +19,37 @@ source.dir = .
 # Tipos de arquivos incluídos
 source.include_exts = py,png,jpg,kv,json
 
-# Dependências (VERSÕES ESTÁVEIS)
-requirements = python3==3.10.11,kivy==2.1.0,kivymd==1.1.1,cython==0.29.33,pyjnius==1.3.0
+# Tela cheia (opcional)
+fullscreen = 0
+
+# Dependências (VERSÕES COMPATÍVEIS)
+requirements = python3==3.10.11,kivy==2.1.0,kivymd==1.1.1,cython==0.29.33,pyjnius==1.5.0
 
 # Permissões Android
 android.permissions = INTERNET
 
-# Configuração Android
-android.api = 31
+# Configuração Android (estável)
+android.api = 30
 android.minapi = 21
+android.build_tools = 30.0.3
+
+# Força versão estável do python-for-android (CRÍTICO)
+p4a.branch = stable
+
+# NDK compatível
+android.ndk = 25b
+
+# Evita backup automático
+android.allow_backup = False
 
 # Aceitar licença automaticamente
 android.accept_sdk_license = True
 
-# 🔥 IMPORTANTE (corrige bug de build/cache)
-android.allow_backup = False
+# Log mais detalhado (ajuda debug)
+log_level = 2
 
 
 [buildozer]
 
+# Log do buildozer
 log_level = 2
