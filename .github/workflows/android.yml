@@ -9,22 +9,35 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Install deps
+      - name: Install system deps
         run: |
           sudo apt update
-          sudo apt install -y zip unzip openjdk-17-jdk
-          pip install buildozer cython
+          sudo apt install -y zip unzip openjdk-17-jdk wget
 
-      - name: Create spec (if not exists)
+      - name: Install Android SDK
         run: |
-          if [ ! -f buildozer.spec ]; then
-            buildozer init
-          fi
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+          unzip commandlinetools-linux-*.zip
+          mv cmdline-tools latest
+
+      - name: Set environment variables
+        run: |
+          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
+
+      - name: Accept licenses
+        run: |
+          yes | sdkmanager --licenses
+
+      - name: Install Python deps
+        run: |
+          pip install buildozer cython
 
       - name: Build APK
         run: |
