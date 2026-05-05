@@ -1,6 +1,7 @@
 name: Build APK
 
-on: push
+on:
+  push:
 
 jobs:
   build:
@@ -13,11 +14,34 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install deps
-        run: sudo apt update && sudo apt install -y zip unzip openjdk-17-jdk wget autoconf automake libtool pkg-config libffi-dev libssl-dev
+      - name: Install system deps
+        run: |
+          sudo apt update
+          sudo apt install -y zip unzip openjdk-17-jdk wget \
+          autoconf automake libtool pkg-config \
+          libffi-dev libssl-dev
+
+      - name: Install Android SDK
+        run: |
+          mkdir -p $HOME/android-sdk/cmdline-tools
+          cd $HOME/android-sdk/cmdline-tools
+
+          wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O tools.zip
+          unzip tools.zip
+          mv cmdline-tools latest
+
+          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH" >> $GITHUB_ENV
+
+      - name: Accept licenses and install SDK
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0"
 
       - name: Install Python deps
-        run: pip install buildozer cython
+        run: |
+          pip install --upgrade pip
+          pip install buildozer cython
 
       - name: Build APK
         run: buildozer android debug
