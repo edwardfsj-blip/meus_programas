@@ -27,7 +27,7 @@ source.include_exts = py,png,jpg,kv,json
 
 # Dependências
 
-requirements = python3==3.10.11,kivy==2.1.0,kivymd==1.1.1,cython==0.29.33,pyjnius==1.4.1
+requirements = python3==3.10.11,kivy==2.1.0,kivymd==1.1.1,cython==0.29.33,pyjnius==1.4.2
 
 # Permissões Android
 
