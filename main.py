@@ -4,16 +4,28 @@ from datetime import datetime, timedelta
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.textfield import MDTextField
-from kivymd.uix.button import MDRaisedButton
+from kivymd.uix.button import MDRectangleFlatIconButton, MDFloatingActionButton
 from kivymd.uix.tab import MDTabsBase, MDTabs
 from kivymd.uix.screen import MDScreen
-from kivymd.uix.list import OneLineListItem
+from kivymd.uix.list import TwoLineAvatarIconListItem
+from kivymd.uix.selectioncontrol import MDCheckbox
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.pickers import MDDatePicker
 
 from kivy.clock import Clock
 from kivy.uix.scrollview import ScrollView
+
+# Notificação opcional
+try:
+    from plyer import notification
+except:
+    notification = None
+
+
+# -------- CALENDÁRIO PT
+class CalendarioPT(MDDatePicker):
+    pass
 
 
 class Tab(MDScreen, MDTabsBase):
@@ -25,39 +37,40 @@ class AppTarefas(MDApp):
     ARQUIVO = "tarefas.json"
 
     def build(self):
-        # 🎨 TEMA PREMIUM
-        self.theme_cls.theme_style = "Light"
         self.theme_cls.primary_palette = "Indigo"
-        self.theme_cls.primary_hue = "400"
 
         self.tarefas = []
         self.concluidas = []
         self.selecionada = None
         self.selecionada_concluida = None
         self.data_selecionada = None
+        self.prioridade = "Normal"
 
         self.carregar_dados()
 
         root = MDBoxLayout(orientation="vertical")
-        root.md_bg_color = (1, 1, 1, 1)
 
         self.tabs = MDTabs()
         root.add_widget(self.tabs)
 
-        # ---------------- ABA ADICIONAR
+        # -------- ABA ADICIONAR
         self.tab_add = Tab(title="Adicionar")
-        box_add = MDBoxLayout(orientation="vertical", padding=15, spacing=15)
 
-        self.input_nome = MDTextField(hint_text="Nome da tarefa")
-        self.input_hora = MDTextField(hint_text="Horário (HH:MM)")
+        box = MDBoxLayout(orientation="vertical", padding=15, spacing=10)
 
-        self.btn_data = MDRaisedButton(
+        self.input_nome = MDTextField(hint_text="Nome")
+        self.input_hora = MDTextField(hint_text="Hora (HH:MM)")
+
+        self.btn_data = MDRectangleFlatIconButton(
             text="Selecionar data",
+            icon="calendar",
             on_release=self.abrir_calendario
         )
 
-        self.prioridade = "Normal"
-        self.btn_prioridade = MDRaisedButton(text="Prioridade: Normal")
+        self.btn_prioridade = MDRectangleFlatIconButton(
+            text="Prioridade: Normal",
+            icon="flag"
+        )
 
         menu_items = [
             {"text": "Alta", "on_release": lambda x="Alta": self.set_prioridade(x)},
@@ -68,20 +81,26 @@ class AppTarefas(MDApp):
         self.menu = MDDropdownMenu(caller=self.btn_prioridade, items=menu_items)
         self.btn_prioridade.bind(on_release=lambda x: self.menu.open())
 
-        btn_salvar = MDRaisedButton(text="Salvar tarefa", on_release=self.adicionar)
+        btn_salvar = MDRectangleFlatIconButton(
+            text="Salvar",
+            icon="check",
+            md_bg_color=(0, 0.6, 1, 1),
+            text_color=(1, 1, 1, 1),
+            on_release=self.adicionar
+        )
 
-        box_add.add_widget(self.input_nome)
-        box_add.add_widget(self.input_hora)
-        box_add.add_widget(self.btn_data)
-        box_add.add_widget(self.btn_prioridade)
-        box_add.add_widget(btn_salvar)
+        box.add_widget(self.input_nome)
+        box.add_widget(self.input_hora)
+        box.add_widget(self.btn_data)
+        box.add_widget(self.btn_prioridade)
+        box.add_widget(btn_salvar)
 
-        self.tab_add.add_widget(box_add)
+        self.tab_add.add_widget(box)
 
-        # ---------------- PENDENTES
+        # -------- ABA PENDENTES
         self.tab_pend = Tab(title="Pendentes")
 
-        self.lista = MDBoxLayout(orientation="vertical", spacing=5, size_hint_y=None)
+        self.lista = MDBoxLayout(orientation="vertical", size_hint_y=None)
         self.lista.bind(minimum_height=self.lista.setter('height'))
 
         scroll = ScrollView()
@@ -90,58 +109,96 @@ class AppTarefas(MDApp):
         self.box_acoes = MDBoxLayout(size_hint_y=None, height=50)
         self.box_acoes.opacity = 0
 
-        btn_exec = MDRaisedButton(text="Executar", on_release=self.executar)
-        btn_del = MDRaisedButton(text="Excluir", on_release=self.excluir)
+        btn_exec = MDRectangleFlatIconButton(text="Executar", icon="check", on_release=self.executar)
+        btn_del = MDRectangleFlatIconButton(text="Excluir", icon="close", on_release=self.excluir)
+        btn_edit = MDRectangleFlatIconButton(text="Editar", icon="pencil", on_release=self.editar_tarefa)
 
         self.box_acoes.add_widget(btn_exec)
         self.box_acoes.add_widget(btn_del)
+        self.box_acoes.add_widget(btn_edit)
 
-        box_pend = MDBoxLayout(orientation="vertical")
-        box_pend.add_widget(scroll)
-        box_pend.add_widget(self.box_acoes)
+        layout_pend = MDBoxLayout(orientation="vertical")
+        layout_pend.add_widget(scroll)
+        layout_pend.add_widget(self.box_acoes)
 
-        self.tab_pend.add_widget(box_pend)
+        self.tab_pend.add_widget(layout_pend)
 
-        # ---------------- CONCLUÍDAS
+        # -------- ABA CONCLUÍDAS
         self.tab_done = Tab(title="Concluídas")
 
-        self.lista_concluidas = MDBoxLayout(
-            orientation="vertical", spacing=5, size_hint_y=None
-        )
+        self.lista_concluidas = MDBoxLayout(orientation="vertical", size_hint_y=None)
         self.lista_concluidas.bind(minimum_height=self.lista_concluidas.setter('height'))
 
-        scroll2 = ScrollView()
-        scroll2.add_widget(self.lista_concluidas)
+        scroll_done = ScrollView()
+        scroll_done.add_widget(self.lista_concluidas)
 
         self.box_acoes_done = MDBoxLayout(size_hint_y=None, height=50)
         self.box_acoes_done.opacity = 0
 
-        btn_del_done = MDRaisedButton(
-            text="Excluir concluída",
+        btn_del_done = MDRectangleFlatIconButton(
+            text="Excluir",
+            icon="close",
             on_release=self.excluir_concluida
         )
 
         self.box_acoes_done.add_widget(btn_del_done)
 
-        container_done = MDBoxLayout(orientation="vertical")
-        container_done.add_widget(scroll2)
-        container_done.add_widget(self.box_acoes_done)
+        layout_done = MDBoxLayout(orientation="vertical")
+        layout_done.add_widget(scroll_done)
+        layout_done.add_widget(self.box_acoes_done)
 
-        self.tab_done.add_widget(container_done)
+        self.tab_done.add_widget(layout_done)
 
-        # ADD TABS
+        # -------- ADICIONAR TABS
         self.tabs.add_widget(self.tab_add)
         self.tabs.add_widget(self.tab_pend)
         self.tabs.add_widget(self.tab_done)
 
-        self.atualizar()
+        # -------- BOTÃO +
+        fab = MDFloatingActionButton(
+            icon="plus",
+            pos_hint={"right": 0.95, "y": 0.02},
+            on_release=lambda x: self.tabs.switch_tab("Adicionar")
+        )
+        root.add_widget(fab)
 
-        Clock.schedule_interval(self.verificar_alertas, 30)
-        Clock.schedule_interval(self.limpar_concluidas_antigas, 60)
+        self.atualizar()
+        Clock.schedule_interval(self.verificar_alertas, 20)
 
         return root
 
-    # ---------------- SALVAR / CARREGAR
+    # -------- DADOS + MIGRAÇÃO
+    def carregar_dados(self):
+        try:
+            with open(self.ARQUIVO, "r") as f:
+                dados = json.load(f)
+
+            if isinstance(dados, dict):
+                self.tarefas = dados.get("tarefas", [])
+                self.concluidas = dados.get("concluidas", [])
+                return
+
+            if isinstance(dados, list):
+                with open(self.ARQUIVO + ".backup", "w") as b:
+                    json.dump(dados, b)
+
+                self.tarefas = [
+                    {
+                        "nome": str(x),
+                        "hora": "00:00",
+                        "data": datetime.now().strftime("%Y-%m-%d"),
+                        "prioridade": "Normal"
+                    }
+                    for x in dados
+                ]
+                self.concluidas = []
+                self.salvar_dados()
+                return
+
+        except:
+            self.tarefas = []
+            self.concluidas = []
+
     def salvar_dados(self):
         with open(self.ARQUIVO, "w") as f:
             json.dump({
@@ -149,76 +206,65 @@ class AppTarefas(MDApp):
                 "concluidas": self.concluidas
             }, f)
 
-    def carregar_dados(self):
-        try:
-            with open(self.ARQUIVO, "r") as f:
-                dados = json.load(f)
-                self.tarefas = dados.get("tarefas", [])
-                self.concluidas = dados.get("concluidas", [])
-        except:
-            pass
-
-    # ---------------- CALENDÁRIO
+    # -------- CALENDÁRIO
     def abrir_calendario(self, obj):
-        date_dialog = MDDatePicker()
-        date_dialog.bind(on_save=self.definir_data)
-        date_dialog.open()
+        dialog = CalendarioPT()
+        dialog.bind(on_save=self.definir_data)
+        dialog.open()
 
     def definir_data(self, instance, value, date_range):
         self.data_selecionada = value.strftime("%Y-%m-%d")
         self.btn_data.text = value.strftime("%d/%m/%Y")
 
-    # ---------------- PRIORIDADE
+    # -------- PRIORIDADE
     def set_prioridade(self, valor):
         self.prioridade = valor
         self.btn_prioridade.text = f"Prioridade: {valor}"
         self.menu.dismiss()
 
-    # ---------------- ADICIONAR
+    # -------- ADICIONAR
     def adicionar(self, obj):
-        if not self.input_nome.text or not self.input_hora.text or not self.data_selecionada:
-            self.mostrar_alerta("Preencha tudo!")
+        if not self.input_nome.text:
             return
 
         self.tarefas.append({
             "nome": self.input_nome.text,
-            "hora": self.input_hora.text,
-            "data": self.data_selecionada,
+            "hora": self.input_hora.text or "00:00",
+            "data": self.data_selecionada or datetime.now().strftime("%Y-%m-%d"),
             "prioridade": self.prioridade
         })
 
         self.salvar_dados()
-        self.input_nome.text = ""
-        self.input_hora.text = ""
         self.atualizar()
 
-    # ---------------- ATUALIZAR
+    # -------- ATUALIZAR
     def atualizar(self):
         self.lista.clear_widgets()
         self.lista_concluidas.clear_widgets()
 
         for i, t in enumerate(self.tarefas):
-            cor = {
-                "Alta": (1, 0.3, 0.3, 1),
-                "Normal": (0.2, 0.6, 1, 1),
-                "Baixa": (0.5, 0.5, 0.5, 1)
-            }[t["prioridade"]]
-
-            item = OneLineListItem(
-                text=f"{t['nome']} - {t['data']} {t['hora']}",
-                text_color=cor
+            item = TwoLineAvatarIconListItem(
+                text=t["nome"],
+                secondary_text=f"{t['data']} {t['hora']}"
             )
+
             item.bind(on_release=lambda x, idx=i: self.selecionar(idx))
+
+            check = MDCheckbox()
+            check.bind(active=lambda x, v, idx=i: self.executar(None) if v else None)
+
+            item.add_widget(check)
             self.lista.add_widget(item)
 
         for i, t in enumerate(self.concluidas):
-            item = OneLineListItem(
-                text=f"{t['nome']} ✔ {t['executado_em']}"
+            item = TwoLineAvatarIconListItem(
+                text=t["nome"],
+                secondary_text=t["executado_em"]
             )
             item.bind(on_release=lambda x, idx=i: self.selecionar_concluida(idx))
             self.lista_concluidas.add_widget(item)
 
-    # ---------------- SELECIONAR
+    # -------- AÇÕES
     def selecionar(self, i):
         self.selecionada = i
         self.box_acoes.opacity = 1
@@ -227,25 +273,31 @@ class AppTarefas(MDApp):
         self.selecionada_concluida = i
         self.box_acoes_done.opacity = 1
 
-    # ---------------- EXECUTAR
     def executar(self, obj):
-        tarefa = self.tarefas.pop(self.selecionada)
+        if self.selecionada is None:
+            return
+
+        t = self.tarefas.pop(self.selecionada)
 
         self.concluidas.append({
-            "nome": tarefa["nome"],
-            "executado_em": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "nome": t["nome"],
+            "executado_em": datetime.now().strftime("%Y-%m-%d %H:%M")
         })
 
         self.selecionada = None
         self.box_acoes.opacity = 0
+
         self.salvar_dados()
         self.atualizar()
 
-    # ---------------- EXCLUIR
     def excluir(self, obj):
+        if self.selecionada is None:
+            return
+
         self.tarefas.pop(self.selecionada)
         self.selecionada = None
         self.box_acoes.opacity = 0
+
         self.salvar_dados()
         self.atualizar()
 
@@ -260,30 +312,54 @@ class AppTarefas(MDApp):
         self.salvar_dados()
         self.atualizar()
 
-    # ---------------- LIMPEZA AUTOMÁTICA
-    def limpar_concluidas_antigas(self, dt):
-        limite = datetime.now() - timedelta(days=30)
+    def editar_tarefa(self, obj):
+        if self.selecionada is None:
+            return
 
-        novas = []
-        for t in self.concluidas:
-            data_exec = datetime.strptime(t["executado_em"], "%Y-%m-%d %H:%M:%S")
-            if data_exec > limite:
-                novas.append(t)
+        t = self.tarefas[self.selecionada]
 
-        self.concluidas = novas
-        self.salvar_dados()
+        nome = MDTextField(text=t["nome"])
+        hora = MDTextField(text=t["hora"])
 
-    # ---------------- ALERTAS
+        box = MDBoxLayout(orientation="vertical")
+        box.add_widget(nome)
+        box.add_widget(hora)
+
+        def salvar(x):
+            t["nome"] = nome.text
+            t["hora"] = hora.text
+            self.salvar_dados()
+            self.atualizar()
+            dialog.dismiss()
+
+        dialog = MDDialog(
+            title="Editar",
+            type="custom",
+            content_cls=box,
+            buttons=[
+                MDRectangleFlatIconButton(text="Salvar", icon="check", on_release=salvar)
+            ]
+        )
+
+        dialog.open()
+
+    # -------- ALERTAS
     def verificar_alertas(self, dt):
-        agora_data = datetime.now().strftime("%Y-%m-%d")
-        agora_hora = datetime.now().strftime("%H:%M")
+        agora = datetime.now()
 
         for t in self.tarefas:
-            if t["data"] == agora_data and t["hora"] == agora_hora:
-                self.mostrar_alerta(f"Tarefa: {t['nome']}")
+            try:
+                dt_tarefa = datetime.strptime(f"{t['data']} {t['hora']}", "%Y-%m-%d %H:%M")
+                if dt_tarefa - timedelta(minutes=10) <= agora < dt_tarefa:
+                    self.alerta(f"⏰ {t['nome']}")
+            except:
+                pass
 
-    def mostrar_alerta(self, texto):
-        MDDialog(title="Aviso", text=texto).open()
+    def alerta(self, msg):
+        if notification:
+            notification.notify(title="Lembrete", message=msg)
+        else:
+            MDDialog(title="Aviso", text=msg).open()
 
 
 AppTarefas().run()
