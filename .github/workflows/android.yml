@@ -18,7 +18,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y zip unzip openjdk-17-jdk
-          pip install buildozer
+          pip install buildozer cython
 
       - name: Create spec (if not exists)
         run: |
