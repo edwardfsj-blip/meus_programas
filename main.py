@@ -5,57 +5,33 @@ from datetime import datetime, timedelta
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.scrollview import ScrollView
-from kivy.utils import platform
-from kivy.core.window import Window
 
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.textfield import MDTextField
-from kivymd.uix.button import MDRaisedButton, MDFloatingActionButton
+from kivymd.uix.button import MDRaisedButton, MDFloatingActionButton, MDFlatButton
 from kivymd.uix.list import TwoLineAvatarIconListItem
 from kivymd.uix.selectioncontrol import MDCheckbox
-
-# plyer opcional
-try:
-    from plyer import notification
-except:
-    notification = None
+from kivymd.uix.dialog import MDDialog
 
 
 class AppTarefas(MDApp):
 
     ARQUIVO = "tarefas.json"
 
-    # -------- CAMINHO SEGURO
-    def get_data_path(self):
-        if platform == "android":
-            from android.storage import app_storage_path
-            path = app_storage_path()
-        else:
-            path = os.getcwd()
-
-        if not os.path.exists(path):
-            os.makedirs(path)
-
-        return path
-
-    def get_file_path(self):
-        return os.path.join(self.get_data_path(), self.ARQUIVO)
-
-    # -------- BUILD
     def build(self):
         self.theme_cls.primary_palette = "Indigo"
 
-        # 🔥 evita bugs de teclado Android
-        Window.softinput_mode = "below_target"
-
         self.tarefas = []
         self.concluidas = []
+
+        self.dialog = None
 
         self.carregar_dados()
 
         root = MDBoxLayout(orientation="vertical", padding=15, spacing=10)
 
+        # INPUTS
         self.input_nome = MDTextField(hint_text="Nome da tarefa")
         self.input_hora = MDTextField(hint_text="Hora (HH:MM)")
 
@@ -68,7 +44,7 @@ class AppTarefas(MDApp):
         root.add_widget(self.input_hora)
         root.add_widget(btn_add)
 
-        # -------- LISTA
+        # LISTA
         self.lista = MDBoxLayout(orientation="vertical", size_hint_y=None)
         self.lista.bind(minimum_height=self.lista.setter('height'))
 
@@ -77,17 +53,15 @@ class AppTarefas(MDApp):
 
         root.add_widget(scroll)
 
-        # -------- LAYOUT FINAL
-        layout_final = MDBoxLayout()
-        layout_final.add_widget(root)
-
-        # -------- FAB (CORRIGIDO)
+        # BOTÃO FLUTUANTE
         fab = MDFloatingActionButton(
             icon="plus",
             pos_hint={"right": 0.95, "y": 0.02},
             on_release=lambda x: self.limpar_inputs()
         )
 
+        layout_final = MDBoxLayout()
+        layout_final.add_widget(root)
         layout_final.add_widget(fab)
 
         self.atualizar()
@@ -96,10 +70,13 @@ class AppTarefas(MDApp):
 
         return layout_final
 
-    # -------- CARREGAR JSON
+    # ---------- ARMAZENAMENTO SEGURO ANDROID
+    def caminho_arquivo(self):
+        return os.path.join(self.user_data_dir, self.ARQUIVO)
+
     def carregar_dados(self):
         try:
-            caminho = self.get_file_path()
+            caminho = self.caminho_arquivo()
 
             if not os.path.exists(caminho):
                 with open(caminho, "w") as f:
@@ -116,10 +93,9 @@ class AppTarefas(MDApp):
             self.tarefas = []
             self.concluidas = []
 
-    # -------- SALVAR JSON
     def salvar_dados(self):
         try:
-            caminho = self.get_file_path()
+            caminho = self.caminho_arquivo()
 
             with open(caminho, "w") as f:
                 json.dump({
@@ -130,9 +106,9 @@ class AppTarefas(MDApp):
         except Exception as e:
             print("Erro salvar:", e)
 
-    # -------- ADICIONAR
+    # ---------- FUNÇÕES
     def adicionar(self, obj):
-        if not self.input_nome.text:
+        if not self.input_nome.text.strip():
             return
 
         self.tarefas.append({
@@ -145,7 +121,6 @@ class AppTarefas(MDApp):
         self.atualizar()
         self.limpar_inputs()
 
-    # -------- ATUALIZAR LISTA (SEM BUG DE LAMBDA)
     def atualizar(self):
         self.lista.clear_widgets()
 
@@ -156,23 +131,13 @@ class AppTarefas(MDApp):
             )
 
             check = MDCheckbox()
-            check.index = i  # 🔥 índice fixo
-
-            def on_check(instance, value):
-                if value:
-                    self.executar(instance.index)
-
-            check.bind(active=on_check)
+            check.bind(active=lambda x, v, idx=i: self.executar(idx) if v else None)
 
             item.add_widget(check)
             self.lista.add_widget(item)
 
-    # -------- EXECUTAR
     def executar(self, idx):
         try:
-            if idx >= len(self.tarefas):
-                return
-
             t = self.tarefas.pop(idx)
 
             self.concluidas.append({
@@ -186,12 +151,31 @@ class AppTarefas(MDApp):
         except Exception as e:
             print("Erro executar:", e)
 
-    # -------- LIMPAR
     def limpar_inputs(self):
         self.input_nome.text = ""
         self.input_hora.text = ""
 
-    # -------- ALERTAS
+    # ---------- ALERTA (SEM PLYER 🔥)
+    def alerta(self, msg):
+        try:
+            if self.dialog:
+                self.dialog.dismiss()
+
+            self.dialog = MDDialog(
+                title="⏰ Lembrete",
+                text=msg,
+                buttons=[
+                    MDFlatButton(
+                        text="OK",
+                        on_release=lambda x: self.dialog.dismiss()
+                    )
+                ],
+            )
+            self.dialog.open()
+
+        except Exception as e:
+            print("Erro alerta:", e)
+
     def verificar_alertas(self, dt):
         agora = datetime.now()
 
@@ -203,21 +187,10 @@ class AppTarefas(MDApp):
                 )
 
                 if dt_tarefa - timedelta(minutes=10) <= agora < dt_tarefa:
-                    self.alerta(f"⏰ {t['nome']}")
+                    self.alerta(f"Tarefa: {t['nome']}")
 
-            except:
-                pass
-
-    def alerta(self, msg):
-        if notification:
-            try:
-                notification.notify(
-                    title="Lembrete",
-                    message=msg
-                )
-            except:
-                pass
+            except Exception as e:
+                print("Erro alerta tempo:", e)
 
 
-if __name__ == "__main__":
-    AppTarefas().run()
+AppTarefas().run()
