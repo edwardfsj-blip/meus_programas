@@ -19,7 +19,7 @@ from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.pickers import MDDatePicker
 
-# 🔒 plyer opcional (evita crash)
+# plyer opcional
 try:
     from plyer import notification
 except:
@@ -39,6 +39,8 @@ class AppTarefas(MDApp):
     ARQUIVO = "tarefas.json"
 
     def build(self):
+        print("APP INICIOU")  # debug
+
         self.theme_cls.primary_palette = "Indigo"
 
         self.tarefas = []
@@ -80,7 +82,12 @@ class AppTarefas(MDApp):
             {"text": "Baixa", "on_release": lambda x="Baixa": self.set_prioridade(x)},
         ]
 
-        self.menu = MDDropdownMenu(caller=self.btn_prioridade, items=menu_items)
+        self.menu = MDDropdownMenu(
+            caller=self.btn_prioridade,
+            items=menu_items,
+            width_mult=4
+        )
+
         self.btn_prioridade.bind(on_release=lambda x: self.menu.open())
 
         btn_salvar = MDRectangleFlatIconButton(
@@ -160,7 +167,7 @@ class AppTarefas(MDApp):
         fab = MDFloatingActionButton(
             icon="plus",
             pos_hint={"right": 0.95, "y": 0.02},
-            on_release=lambda x: self.tabs.switch_tab("Adicionar")
+            on_release=lambda x: self.tabs.switch_tab(self.tab_add)
         )
         root.add_widget(fab)
 
@@ -169,8 +176,10 @@ class AppTarefas(MDApp):
 
         return root
 
-    # -------- DADOS (ANDROID SAFE)
+    # -------- DADOS ANDROID SAFE
     def carregar_dados(self):
+        print("CARREGANDO DADOS")
+
         try:
             caminho = resource_find(self.ARQUIVO)
 
@@ -206,20 +215,10 @@ class AppTarefas(MDApp):
         except Exception as e:
             print("ERRO salvar:", e)
 
-    # -------- RESTO DO APP (igual)
-    def abrir_calendario(self, obj):
-        dialog = CalendarioPT()
-        dialog.bind(on_save=self.definir_data)
-        dialog.open()
-
-    def definir_data(self, instance, value, date_range):
-        self.data_selecionada = value.strftime("%Y-%m-%d")
-        self.btn_data.text = value.strftime("%d/%m/%Y")
-
-    def set_prioridade(self, valor):
-        self.prioridade = valor
-        self.btn_prioridade.text = f"Prioridade: {valor}"
-        self.menu.dismiss()
+    # -------- AÇÕES
+    def marcar_execucao(self, idx):
+        self.selecionada = idx
+        self.executar(None)
 
     def adicionar(self, obj):
         if not self.input_nome.text:
@@ -248,7 +247,7 @@ class AppTarefas(MDApp):
             item.bind(on_release=lambda x, idx=i: self.selecionar(idx))
 
             check = MDCheckbox()
-            check.bind(active=lambda x, v, idx=i: self.executar(None) if v else None)
+            check.bind(active=lambda x, v, idx=i: self.marcar_execucao(idx) if v else None)
 
             item.add_widget(check)
             self.lista.add_widget(item)
