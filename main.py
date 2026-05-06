@@ -2,7 +2,6 @@ import json
 import os
 from datetime import datetime, timedelta
 
-from kivy.resources import resource_find
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.scrollview import ScrollView
@@ -12,7 +11,6 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.button import MDRectangleFlatIconButton, MDFloatingActionButton
 from kivymd.uix.tab import MDTabsBase, MDTabs
-from kivymd.uix.screen import MDScreen
 from kivymd.uix.list import TwoLineAvatarIconListItem
 from kivymd.uix.selectioncontrol import MDCheckbox
 from kivymd.uix.menu import MDDropdownMenu
@@ -26,11 +24,12 @@ except:
     notification = None
 
 
-class CalendarioPT(MDDatePicker):
+# 🔥 CORREÇÃO CRÍTICA (não usar MDScreen)
+class Tab(MDBoxLayout, MDTabsBase):
     pass
 
 
-class Tab(MDScreen, MDTabsBase):
+class CalendarioPT(MDDatePicker):
     pass
 
 
@@ -39,8 +38,6 @@ class AppTarefas(MDApp):
     ARQUIVO = "tarefas.json"
 
     def build(self):
-        print("APP INICIOU")  # debug
-
         self.theme_cls.primary_palette = "Indigo"
 
         self.tarefas = []
@@ -58,7 +55,7 @@ class AppTarefas(MDApp):
         root.add_widget(self.tabs)
 
         # -------- ABA ADICIONAR
-        self.tab_add = Tab(title="Adicionar")
+        self.tab_add = Tab(title="Adicionar", orientation="vertical")
 
         box = MDBoxLayout(orientation="vertical", padding=15, spacing=10)
 
@@ -85,7 +82,8 @@ class AppTarefas(MDApp):
         self.menu = MDDropdownMenu(
             caller=self.btn_prioridade,
             items=menu_items,
-            width_mult=4
+            width_mult=4,
+            max_height=200
         )
 
         self.btn_prioridade.bind(on_release=lambda x: self.menu.open())
@@ -93,8 +91,6 @@ class AppTarefas(MDApp):
         btn_salvar = MDRectangleFlatIconButton(
             text="Salvar",
             icon="check",
-            md_bg_color=(0, 0.6, 1, 1),
-            text_color=(1, 1, 1, 1),
             on_release=self.adicionar
         )
 
@@ -107,7 +103,7 @@ class AppTarefas(MDApp):
         self.tab_add.add_widget(box)
 
         # -------- ABA PENDENTES
-        self.tab_pend = Tab(title="Pendentes")
+        self.tab_pend = Tab(title="Pendentes", orientation="vertical")
 
         self.lista = MDBoxLayout(orientation="vertical", size_hint_y=None)
         self.lista.bind(minimum_height=self.lista.setter('height'))
@@ -118,13 +114,11 @@ class AppTarefas(MDApp):
         self.box_acoes = MDBoxLayout(size_hint_y=None, height=50)
         self.box_acoes.opacity = 0
 
-        btn_exec = MDRectangleFlatIconButton(text="Executar", icon="check", on_release=self.executar)
-        btn_del = MDRectangleFlatIconButton(text="Excluir", icon="close", on_release=self.excluir)
-        btn_edit = MDRectangleFlatIconButton(text="Editar", icon="pencil", on_release=self.editar_tarefa)
+        btn_exec = MDRectangleFlatIconButton(text="Executar", on_release=self.executar)
+        btn_del = MDRectangleFlatIconButton(text="Excluir", on_release=self.excluir)
 
         self.box_acoes.add_widget(btn_exec)
         self.box_acoes.add_widget(btn_del)
-        self.box_acoes.add_widget(btn_edit)
 
         layout_pend = MDBoxLayout(orientation="vertical")
         layout_pend.add_widget(scroll)
@@ -133,7 +127,7 @@ class AppTarefas(MDApp):
         self.tab_pend.add_widget(layout_pend)
 
         # -------- ABA CONCLUÍDAS
-        self.tab_done = Tab(title="Concluídas")
+        self.tab_done = Tab(title="Concluídas", orientation="vertical")
 
         self.lista_concluidas = MDBoxLayout(orientation="vertical", size_hint_y=None)
         self.lista_concluidas.bind(minimum_height=self.lista_concluidas.setter('height'))
@@ -141,50 +135,34 @@ class AppTarefas(MDApp):
         scroll_done = ScrollView()
         scroll_done.add_widget(self.lista_concluidas)
 
-        self.box_acoes_done = MDBoxLayout(size_hint_y=None, height=50)
-        self.box_acoes_done.opacity = 0
-
-        btn_del_done = MDRectangleFlatIconButton(
-            text="Excluir",
-            icon="close",
-            on_release=self.excluir_concluida
-        )
-
-        self.box_acoes_done.add_widget(btn_del_done)
-
-        layout_done = MDBoxLayout(orientation="vertical")
-        layout_done.add_widget(scroll_done)
-        layout_done.add_widget(self.box_acoes_done)
-
-        self.tab_done.add_widget(layout_done)
+        self.tab_done.add_widget(scroll_done)
 
         # -------- ADICIONAR TABS
         self.tabs.add_widget(self.tab_add)
         self.tabs.add_widget(self.tab_pend)
         self.tabs.add_widget(self.tab_done)
 
-        # -------- BOTÃO +
+        # -------- FAB (corrigido)
+        layout_final = MDBoxLayout(orientation="vertical")
+        layout_final.add_widget(root)
+
         fab = MDFloatingActionButton(
             icon="plus",
             pos_hint={"right": 0.95, "y": 0.02},
             on_release=lambda x: self.tabs.switch_tab(self.tab_add)
         )
-        root.add_widget(fab)
+
+        layout_final.add_widget(fab)
 
         self.atualizar()
         Clock.schedule_interval(self.verificar_alertas, 20)
 
-        return root
+        return layout_final
 
-    # -------- DADOS ANDROID SAFE
+    # -------- JSON ANDROID SAFE
     def carregar_dados(self):
-        print("CARREGANDO DADOS")
-
         try:
-            caminho = resource_find(self.ARQUIVO)
-
-            if not caminho:
-                caminho = os.path.join(App.get_running_app().user_data_dir, self.ARQUIVO)
+            caminho = os.path.join(App.get_running_app().user_data_dir, self.ARQUIVO)
 
             if not os.path.exists(caminho):
                 self.tarefas = []
@@ -198,7 +176,7 @@ class AppTarefas(MDApp):
             self.concluidas = dados.get("concluidas", [])
 
         except Exception as e:
-            print("ERRO carregar:", e)
+            print("Erro carregar:", e)
             self.tarefas = []
             self.concluidas = []
 
@@ -213,12 +191,22 @@ class AppTarefas(MDApp):
                 }, f)
 
         except Exception as e:
-            print("ERRO salvar:", e)
+            print("Erro salvar:", e)
 
-    # -------- AÇÕES
-    def marcar_execucao(self, idx):
-        self.selecionada = idx
-        self.executar(None)
+    # -------- FUNÇÕES
+    def abrir_calendario(self, obj):
+        dialog = CalendarioPT()
+        dialog.bind(on_save=self.definir_data)
+        dialog.open()
+
+    def definir_data(self, instance, value, date_range):
+        self.data_selecionada = value.strftime("%Y-%m-%d")
+        self.btn_data.text = value.strftime("%d/%m/%Y")
+
+    def set_prioridade(self, valor):
+        self.prioridade = valor
+        self.btn_prioridade.text = f"Prioridade: {valor}"
+        self.menu.dismiss()
 
     def adicionar(self, obj):
         if not self.input_nome.text:
@@ -257,16 +245,15 @@ class AppTarefas(MDApp):
                 text=t["nome"],
                 secondary_text=t["executado_em"]
             )
-            item.bind(on_release=lambda x, idx=i: self.selecionar_concluida(idx))
             self.lista_concluidas.add_widget(item)
+
+    def marcar_execucao(self, idx):
+        self.selecionada = idx
+        self.executar(None)
 
     def selecionar(self, i):
         self.selecionada = i
         self.box_acoes.opacity = 1
-
-    def selecionar_concluida(self, i):
-        self.selecionada_concluida = i
-        self.box_acoes_done.opacity = 1
 
     def executar(self, obj):
         if self.selecionada is None:
@@ -296,48 +283,6 @@ class AppTarefas(MDApp):
         self.salvar_dados()
         self.atualizar()
 
-    def excluir_concluida(self, obj):
-        if self.selecionada_concluida is None:
-            return
-
-        self.concluidas.pop(self.selecionada_concluida)
-        self.selecionada_concluida = None
-        self.box_acoes_done.opacity = 0
-
-        self.salvar_dados()
-        self.atualizar()
-
-    def editar_tarefa(self, obj):
-        if self.selecionada is None:
-            return
-
-        t = self.tarefas[self.selecionada]
-
-        nome = MDTextField(text=t["nome"])
-        hora = MDTextField(text=t["hora"])
-
-        box = MDBoxLayout(orientation="vertical")
-        box.add_widget(nome)
-        box.add_widget(hora)
-
-        def salvar(x):
-            t["nome"] = nome.text
-            t["hora"] = hora.text
-            self.salvar_dados()
-            self.atualizar()
-            dialog.dismiss()
-
-        dialog = MDDialog(
-            title="Editar",
-            type="custom",
-            content_cls=box,
-            buttons=[
-                MDRectangleFlatIconButton(text="Salvar", icon="check", on_release=salvar)
-            ]
-        )
-
-        dialog.open()
-
     def verificar_alertas(self, dt):
         agora = datetime.now()
 
@@ -346,14 +291,12 @@ class AppTarefas(MDApp):
                 dt_tarefa = datetime.strptime(f"{t['data']} {t['hora']}", "%Y-%m-%d %H:%M")
                 if dt_tarefa - timedelta(minutes=10) <= agora < dt_tarefa:
                     self.alerta(f"⏰ {t['nome']}")
-            except Exception as e:
-                print("ERRO alerta:", e)
+            except:
+                pass
 
     def alerta(self, msg):
         if notification:
             notification.notify(title="Lembrete", message=msg)
-        else:
-            MDDialog(title="Aviso", text=msg).open()
 
 
 AppTarefas().run()
