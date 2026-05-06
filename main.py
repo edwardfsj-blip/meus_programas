@@ -1,15 +1,25 @@
-import json
 import os
+
+# 🔥 CORREÇÕES CRÍTICAS PARA ANDROID / XIAOMI (ANTES DO KIVY)
+os.environ["KIVY_GL_BACKEND"] = "sdl2"
+os.environ["KIVY_NO_ARGS"] = "1"
+os.environ["KIVY_WINDOW"] = "sdl2"
+os.environ["KIVY_CLOCK"] = "interrupt"
+
+import json
 from datetime import datetime, timedelta
 
-from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.scrollview import ScrollView
 
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.textfield import MDTextField
-from kivymd.uix.button import MDRaisedButton, MDFloatingActionButton, MDFlatButton
+from kivymd.uix.button import (
+    MDRaisedButton,
+    MDFloatingActionButton,
+    MDFlatButton
+)
 from kivymd.uix.list import TwoLineAvatarIconListItem
 from kivymd.uix.selectioncontrol import MDCheckbox
 from kivymd.uix.dialog import MDDialog
@@ -24,12 +34,15 @@ class AppTarefas(MDApp):
 
         self.tarefas = []
         self.concluidas = []
-
         self.dialog = None
 
         self.carregar_dados()
 
-        root = MDBoxLayout(orientation="vertical", padding=15, spacing=10)
+        root = MDBoxLayout(
+            orientation="vertical",
+            padding=15,
+            spacing=10
+        )
 
         # INPUTS
         self.input_nome = MDTextField(hint_text="Nome da tarefa")
@@ -45,7 +58,10 @@ class AppTarefas(MDApp):
         root.add_widget(btn_add)
 
         # LISTA
-        self.lista = MDBoxLayout(orientation="vertical", size_hint_y=None)
+        self.lista = MDBoxLayout(
+            orientation="vertical",
+            size_hint_y=None
+        )
         self.lista.bind(minimum_height=self.lista.setter('height'))
 
         scroll = ScrollView()
@@ -53,7 +69,7 @@ class AppTarefas(MDApp):
 
         root.add_widget(scroll)
 
-        # BOTÃO FLUTUANTE
+        # FAB
         fab = MDFloatingActionButton(
             icon="plus",
             pos_hint={"right": 0.95, "y": 0.02},
@@ -66,11 +82,12 @@ class AppTarefas(MDApp):
 
         self.atualizar()
 
+        # 🔥 verifica alertas
         Clock.schedule_interval(self.verificar_alertas, 20)
 
         return layout_final
 
-    # ---------- ARMAZENAMENTO SEGURO ANDROID
+    # -------- ARMAZENAMENTO ANDROID
     def caminho_arquivo(self):
         return os.path.join(self.user_data_dir, self.ARQUIVO)
 
@@ -106,7 +123,7 @@ class AppTarefas(MDApp):
         except Exception as e:
             print("Erro salvar:", e)
 
-    # ---------- FUNÇÕES
+    # -------- FUNÇÕES
     def adicionar(self, obj):
         if not self.input_nome.text.strip():
             return
@@ -155,7 +172,7 @@ class AppTarefas(MDApp):
         self.input_nome.text = ""
         self.input_hora.text = ""
 
-    # ---------- ALERTA (SEM PLYER 🔥)
+    # -------- ALERTA (SEM PLYER)
     def alerta(self, msg):
         try:
             if self.dialog:
