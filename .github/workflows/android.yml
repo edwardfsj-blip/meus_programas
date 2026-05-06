@@ -7,6 +7,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    env:
+      ANDROIDAPI: "30"
+      ANDROIDMINAPI: "21"
+
     steps:
       - name: Checkout código
         uses: actions/checkout@v3
@@ -16,12 +20,17 @@ jobs:
         with:
           python-version: "3.10"
 
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
       - name: Install system deps
         run: |
           sudo apt update
           sudo apt install -y \
             zip unzip wget \
-            openjdk-17-jdk \
             autoconf automake libtool pkg-config \
             libffi-dev libssl-dev \
             build-essential git \
@@ -39,6 +48,5 @@ jobs:
 
       - name: Build APK
         run: |
-          buildozer init || true
-          buildozer android clean
-          buildozer android debug
+          rm -rf .buildozer
+          buildozer -v android debug
