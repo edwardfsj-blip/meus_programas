@@ -53,3 +53,9 @@ jobs:
         run: |
           rm -rf .buildozer
           buildozer  android debug
+
+      - name: Upload APK
+              uses: actions/upload-artifact@v3
+              with:
+               name: meu-apk
+               path: "**/*.apk"
