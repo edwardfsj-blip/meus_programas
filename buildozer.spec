@@ -9,7 +9,7 @@ orientation = portrait
 fullscreen = 0
 
 # Ajustado para maior compatibilidade
-requirements = python3,kivy==2.1.0,kivymd==1.1.1,cython==0.29.36,pyjnius==1.4.2
+requirements = python3==3.10.11,kivy==2.2.1,kivymd==1.1.1,cython==0.29.33,pyjnius==1.5.0
 
 android.permissions = INTERNET
 android.api = 33
