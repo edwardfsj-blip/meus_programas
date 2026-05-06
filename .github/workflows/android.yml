@@ -42,7 +42,8 @@ jobs:
             libavformat-dev \
             libavcodec-dev \
             zlib1g-dev \
-            libgstreamer1.0-gstreamer-lite1.0-dev \
+            libgstreamer1.0-dev \
+            gstreamer1.0-plugins-base-apps \
             libgstreamer-plugins-base1.0-dev \
             zip \
             unzip \
@@ -53,10 +54,10 @@ jobs:
             libffi-dev \
             libssl-dev \
             cmake \
-            gettower \
             ant \
             python3-dev \
             libltdl-dev
+
 
       - name: Install Python deps
         run: |
