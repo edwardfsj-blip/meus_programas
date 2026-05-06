@@ -30,17 +30,15 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y \
-           zip unzip wget \
-           autoconf automake libtool libtool-bin libltdl-dev \
-           pkg-config \
-           libffi-dev libssl-dev \
-           build-essential git \
-           zlib1g-dev \
-           libncurses5-dev \
-           libncursesw5-dev \
-           libtinfo6 \
-           cmake
-
+            zip unzip wget \
+            autoconf automake libtool libltdl-dev \
+            pkg-config \
+            libffi-dev libssl-dev \
+            build-essential git \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            cmake
 
       - name: Install Python deps
         run: |
@@ -48,14 +46,14 @@ jobs:
           pip install "cython<3.0.0"
           pip install buildozer==1.5.0
           pip install pyjnius==1.4.2
-      
+
       - name: Build APK
         run: |
           rm -rf .buildozer
-          buildozer  android debug
+          buildozer android debug
 
       - name: Upload APK
-          uses: actions/upload-artifact@v3
-          with:
-            name: meu-apk
-            path: "**/*.apk"
+        uses: actions/upload-artifact@v3
+        with:
+          name: meu-apk
+          path: "**/*.apk"
