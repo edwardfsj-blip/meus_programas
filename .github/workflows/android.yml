@@ -30,43 +30,26 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y \
-            build-essential \
-            git \
-            ffmpeg \
-            libsdl2-dev \
-            libsdl2-image-dev \
-            libsdl2-mixer-dev \
-            libsdl2-ttf-dev \
-            libportmidi-dev \
-            libswscale-dev \
-            libavformat-dev \
-            libavcodec-dev \
-            zlib1g-dev \
-            libgstreamer1.0-dev \
-            gstreamer1.0-plugins-base-apps \
-            libgstreamer-plugins-base1.0-dev \
-            zip \
-            unzip \
-            autoconf \
-            automake \
-            libtool \
-            pkg-config \
-            libffi-dev \
-            libssl-dev \
-            cmake \
-            ant \
-            python3-dev \
-            libltdl-dev
+           zip unzip wget \
+           autoconf automake libtool libtool-bin libltdl-dev \
+           pkg-config \
+           libffi-dev libssl-dev \
+           build-essential git \
+           zlib1g-dev \
+           libncurses5-dev \
+           libncursesw5-dev \
+           libtinfo6 \
+           cmake
 
 
       - name: Install Python deps
         run: |
           pip install --upgrade pip
           pip install "cython<3.0.0"
+          pip install buildozer==1.5.0
           pip install pyjnius==1.4.2
-          pip install buildozer
       
       - name: Build APK
         run: |
           rm -rf .buildozer
-          buildozer -v android debug
+          buildozer  android debug
