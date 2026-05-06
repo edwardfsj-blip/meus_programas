@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.scrollview import ScrollView
+from kivy.utils import platform
 
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
@@ -13,7 +14,7 @@ from kivymd.uix.button import MDRaisedButton, MDFloatingActionButton
 from kivymd.uix.list import TwoLineAvatarIconListItem
 from kivymd.uix.selectioncontrol import MDCheckbox
 
-# plyer opcional (não quebra se não tiver)
+# plyer opcional
 try:
     from plyer import notification
 except:
@@ -24,18 +25,33 @@ class AppTarefas(MDApp):
 
     ARQUIVO = "tarefas.json"
 
+    # -------- CAMINHO SEGURO ANDROID
+    def get_data_path(self):
+        if platform == "android":
+            from android.storage import app_storage_path
+            path = app_storage_path()
+        else:
+            path = os.getcwd()
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        return path
+
+    def get_file_path(self):
+        return os.path.join(self.get_data_path(), self.ARQUIVO)
+
+    # -------- BUILD
     def build(self):
         self.theme_cls.primary_palette = "Indigo"
 
         self.tarefas = []
         self.concluidas = []
-        self.selecionada = None
 
         self.carregar_dados()
 
         root = MDBoxLayout(orientation="vertical", padding=15, spacing=10)
 
-        # -------- INPUTS
         self.input_nome = MDTextField(hint_text="Nome da tarefa")
         self.input_hora = MDTextField(hint_text="Hora (HH:MM)")
 
@@ -57,7 +73,7 @@ class AppTarefas(MDApp):
 
         root.add_widget(scroll)
 
-        # -------- FAB
+        # -------- BOTÃO FLUTUANTE
         fab = MDFloatingActionButton(
             icon="plus",
             pos_hint={"right": 0.95, "y": 0.02},
@@ -74,12 +90,11 @@ class AppTarefas(MDApp):
 
         return layout_final
 
-    # -------- JSON SEGURO ANDROID
+    # -------- CARREGAR JSON
     def carregar_dados(self):
         try:
-            caminho = os.path.join(App.get_running_app().user_data_dir, self.ARQUIVO)
+            caminho = self.get_file_path()
 
-            # 🔥 cria arquivo automaticamente
             if not os.path.exists(caminho):
                 with open(caminho, "w") as f:
                     json.dump({"tarefas": [], "concluidas": []}, f)
@@ -95,9 +110,10 @@ class AppTarefas(MDApp):
             self.tarefas = []
             self.concluidas = []
 
+    # -------- SALVAR JSON
     def salvar_dados(self):
         try:
-            caminho = os.path.join(App.get_running_app().user_data_dir, self.ARQUIVO)
+            caminho = self.get_file_path()
 
             with open(caminho, "w") as f:
                 json.dump({
@@ -108,7 +124,7 @@ class AppTarefas(MDApp):
         except Exception as e:
             print("Erro salvar:", e)
 
-    # -------- FUNÇÕES
+    # -------- ADICIONAR
     def adicionar(self, obj):
         if not self.input_nome.text:
             return
@@ -123,6 +139,7 @@ class AppTarefas(MDApp):
         self.atualizar()
         self.limpar_inputs()
 
+    # -------- ATUALIZAR LISTA
     def atualizar(self):
         self.lista.clear_widgets()
 
@@ -138,6 +155,7 @@ class AppTarefas(MDApp):
             item.add_widget(check)
             self.lista.add_widget(item)
 
+    # -------- EXECUTAR TAREFA
     def executar(self, idx):
         try:
             t = self.tarefas.pop(idx)
@@ -153,16 +171,21 @@ class AppTarefas(MDApp):
         except Exception as e:
             print("Erro executar:", e)
 
+    # -------- LIMPAR INPUTS
     def limpar_inputs(self):
         self.input_nome.text = ""
         self.input_hora.text = ""
 
+    # -------- ALERTAS
     def verificar_alertas(self, dt):
         agora = datetime.now()
 
         for t in self.tarefas:
             try:
-                dt_tarefa = datetime.strptime(f"{t['data']} {t['hora']}", "%Y-%m-%d %H:%M")
+                dt_tarefa = datetime.strptime(
+                    f"{t['data']} {t['hora']}",
+                    "%Y-%m-%d %H:%M"
+                )
 
                 if dt_tarefa - timedelta(minutes=10) <= agora < dt_tarefa:
                     self.alerta(f"⏰ {t['nome']}")
@@ -173,9 +196,13 @@ class AppTarefas(MDApp):
     def alerta(self, msg):
         if notification:
             try:
-                notification.notify(title="Lembrete", message=msg)
+                notification.notify(
+                    title="Lembrete",
+                    message=msg
+                )
             except:
                 pass
 
 
-AppTarefas().run()
+if __name__ == "__main__":
+    AppTarefas().run()
