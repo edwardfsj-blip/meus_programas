@@ -6,6 +6,7 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivy.uix.scrollview import ScrollView
 from kivy.utils import platform
+from kivy.core.window import Window
 
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
@@ -25,7 +26,7 @@ class AppTarefas(MDApp):
 
     ARQUIVO = "tarefas.json"
 
-    # -------- CAMINHO SEGURO ANDROID
+    # -------- CAMINHO SEGURO
     def get_data_path(self):
         if platform == "android":
             from android.storage import app_storage_path
@@ -44,6 +45,9 @@ class AppTarefas(MDApp):
     # -------- BUILD
     def build(self):
         self.theme_cls.primary_palette = "Indigo"
+
+        # 🔥 evita bugs de teclado Android
+        Window.softinput_mode = "below_target"
 
         self.tarefas = []
         self.concluidas = []
@@ -73,15 +77,17 @@ class AppTarefas(MDApp):
 
         root.add_widget(scroll)
 
-        # -------- BOTÃO FLUTUANTE
+        # -------- LAYOUT FINAL
+        layout_final = MDBoxLayout()
+        layout_final.add_widget(root)
+
+        # -------- FAB (CORRIGIDO)
         fab = MDFloatingActionButton(
             icon="plus",
             pos_hint={"right": 0.95, "y": 0.02},
             on_release=lambda x: self.limpar_inputs()
         )
 
-        layout_final = MDBoxLayout()
-        layout_final.add_widget(root)
         layout_final.add_widget(fab)
 
         self.atualizar()
@@ -139,7 +145,7 @@ class AppTarefas(MDApp):
         self.atualizar()
         self.limpar_inputs()
 
-    # -------- ATUALIZAR LISTA
+    # -------- ATUALIZAR LISTA (SEM BUG DE LAMBDA)
     def atualizar(self):
         self.lista.clear_widgets()
 
@@ -150,14 +156,23 @@ class AppTarefas(MDApp):
             )
 
             check = MDCheckbox()
-            check.bind(active=lambda x, v, idx=i: self.executar(idx) if v else None)
+            check.index = i  # 🔥 índice fixo
+
+            def on_check(instance, value):
+                if value:
+                    self.executar(instance.index)
+
+            check.bind(active=on_check)
 
             item.add_widget(check)
             self.lista.add_widget(item)
 
-    # -------- EXECUTAR TAREFA
+    # -------- EXECUTAR
     def executar(self, idx):
         try:
+            if idx >= len(self.tarefas):
+                return
+
             t = self.tarefas.pop(idx)
 
             self.concluidas.append({
@@ -171,7 +186,7 @@ class AppTarefas(MDApp):
         except Exception as e:
             print("Erro executar:", e)
 
-    # -------- LIMPAR INPUTS
+    # -------- LIMPAR
     def limpar_inputs(self):
         self.input_nome.text = ""
         self.input_hora.text = ""
