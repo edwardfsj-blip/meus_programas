@@ -8,9 +8,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout código
+        uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
@@ -18,23 +20,24 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y \
-          zip unzip wget \
-          openjdk-17-jdk \
-          autoconf automake libtool pkg-config \
-          libffi-dev libssl-dev \
-          build-essential git \
-          zlib1g-dev \
-          libncurses5-dev \
-          libncursesw5-dev \
-          libtinfo5 \
-          cmake
+            zip unzip wget \
+            openjdk-17-jdk \
+            autoconf automake libtool pkg-config \
+            libffi-dev libssl-dev \
+            build-essential git \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libtinfo6 \
+            cmake
 
       - name: Install Python deps
         run: |
-           pip install --upgrade pip
-           pip install buildozer==1.5.0 cython==0.29.33
-           pip install pyjnius==1.4.2
-          
+          pip install --upgrade pip
+          pip install buildozer==1.5.0 cython==0.29.33
+          pip install pyjnius==1.4.2
 
       - name: Build APK
-        run: buildozer android debug
+        run: |
+          buildozer android clean
+          buildozer android debug
