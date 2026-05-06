@@ -1,5 +1,11 @@
 import json
+import os
 from datetime import datetime, timedelta
+
+from kivy.resources import resource_find
+from kivy.app import App
+from kivy.clock import Clock
+from kivy.uix.scrollview import ScrollView
 
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
@@ -13,17 +19,13 @@ from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.pickers import MDDatePicker
 
-from kivy.clock import Clock
-from kivy.uix.scrollview import ScrollView
-
-# Notificação opcional
+# 🔒 plyer opcional (evita crash)
 try:
     from plyer import notification
 except:
     notification = None
 
 
-# -------- CALENDÁRIO PT
 class CalendarioPT(MDDatePicker):
     pass
 
@@ -167,46 +169,44 @@ class AppTarefas(MDApp):
 
         return root
 
-    # -------- DADOS + MIGRAÇÃO
+    # -------- DADOS (ANDROID SAFE)
     def carregar_dados(self):
         try:
-            with open(self.ARQUIVO, "r") as f:
+            caminho = resource_find(self.ARQUIVO)
+
+            if not caminho:
+                caminho = os.path.join(App.get_running_app().user_data_dir, self.ARQUIVO)
+
+            if not os.path.exists(caminho):
+                self.tarefas = []
+                self.concluidas = []
+                return
+
+            with open(caminho, "r") as f:
                 dados = json.load(f)
 
-            if isinstance(dados, dict):
-                self.tarefas = dados.get("tarefas", [])
-                self.concluidas = dados.get("concluidas", [])
-                return
+            self.tarefas = dados.get("tarefas", [])
+            self.concluidas = dados.get("concluidas", [])
 
-            if isinstance(dados, list):
-                with open(self.ARQUIVO + ".backup", "w") as b:
-                    json.dump(dados, b)
-
-                self.tarefas = [
-                    {
-                        "nome": str(x),
-                        "hora": "00:00",
-                        "data": datetime.now().strftime("%Y-%m-%d"),
-                        "prioridade": "Normal"
-                    }
-                    for x in dados
-                ]
-                self.concluidas = []
-                self.salvar_dados()
-                return
-
-        except:
+        except Exception as e:
+            print("ERRO carregar:", e)
             self.tarefas = []
             self.concluidas = []
 
     def salvar_dados(self):
-        with open(self.ARQUIVO, "w") as f:
-            json.dump({
-                "tarefas": self.tarefas,
-                "concluidas": self.concluidas
-            }, f)
+        try:
+            caminho = os.path.join(App.get_running_app().user_data_dir, self.ARQUIVO)
 
-    # -------- CALENDÁRIO
+            with open(caminho, "w") as f:
+                json.dump({
+                    "tarefas": self.tarefas,
+                    "concluidas": self.concluidas
+                }, f)
+
+        except Exception as e:
+            print("ERRO salvar:", e)
+
+    # -------- RESTO DO APP (igual)
     def abrir_calendario(self, obj):
         dialog = CalendarioPT()
         dialog.bind(on_save=self.definir_data)
@@ -216,13 +216,11 @@ class AppTarefas(MDApp):
         self.data_selecionada = value.strftime("%Y-%m-%d")
         self.btn_data.text = value.strftime("%d/%m/%Y")
 
-    # -------- PRIORIDADE
     def set_prioridade(self, valor):
         self.prioridade = valor
         self.btn_prioridade.text = f"Prioridade: {valor}"
         self.menu.dismiss()
 
-    # -------- ADICIONAR
     def adicionar(self, obj):
         if not self.input_nome.text:
             return
@@ -237,7 +235,6 @@ class AppTarefas(MDApp):
         self.salvar_dados()
         self.atualizar()
 
-    # -------- ATUALIZAR
     def atualizar(self):
         self.lista.clear_widgets()
         self.lista_concluidas.clear_widgets()
@@ -264,7 +261,6 @@ class AppTarefas(MDApp):
             item.bind(on_release=lambda x, idx=i: self.selecionar_concluida(idx))
             self.lista_concluidas.add_widget(item)
 
-    # -------- AÇÕES
     def selecionar(self, i):
         self.selecionada = i
         self.box_acoes.opacity = 1
@@ -343,7 +339,6 @@ class AppTarefas(MDApp):
 
         dialog.open()
 
-    # -------- ALERTAS
     def verificar_alertas(self, dt):
         agora = datetime.now()
 
@@ -352,8 +347,8 @@ class AppTarefas(MDApp):
                 dt_tarefa = datetime.strptime(f"{t['data']} {t['hora']}", "%Y-%m-%d %H:%M")
                 if dt_tarefa - timedelta(minutes=10) <= agora < dt_tarefa:
                     self.alerta(f"⏰ {t['nome']}")
-            except:
-                pass
+            except Exception as e:
+                print("ERRO alerta:", e)
 
     def alerta(self, msg):
         if notification:
