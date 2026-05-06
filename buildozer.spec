@@ -8,15 +8,15 @@ version = 0.1
 orientation = portrait
 fullscreen = 0
 
-# Ajustado para maior compatibilidade
 requirements = python3==3.10.11,kivy==2.2.1,kivymd==1.1.1,cython==0.29.33,pyjnius==1.5.0
 
 android.permissions = INTERNET
-android.api = 33
+android.api = 31
 android.minapi = 21
 android.ndk = 25b
 android.accept_sdk_license = True
-android.archs = arm64-v8a, armeabi-v7a
+
+android.archs = arm64-v8a
 
 [buildozer]
 log_level = 2
