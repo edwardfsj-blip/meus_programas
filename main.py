@@ -1,6 +1,6 @@
 import os
 
-# 🔥 CORREÇÕES CRÍTICAS PARA ANDROID / XIAOMI (ANTES DO KIVY)
+# 🔥 CORREÇÕES ANDROID / XIAOMI
 os.environ["KIVY_GL_BACKEND"] = "sdl2"
 os.environ["KIVY_NO_ARGS"] = "1"
 os.environ["KIVY_WINDOW"] = "sdl2"
@@ -10,7 +10,9 @@ import json
 from datetime import datetime, timedelta
 
 from kivy.clock import Clock
+from kivy.core.window import Window
 from kivy.uix.scrollview import ScrollView
+from kivy.uix.floatlayout import FloatLayout
 
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
@@ -20,9 +22,12 @@ from kivymd.uix.button import (
     MDFloatingActionButton,
     MDFlatButton
 )
-from kivymd.uix.list import TwoLineAvatarIconListItem
+from kivymd.uix.list import TwoLineListItem
 from kivymd.uix.selectioncontrol import MDCheckbox
 from kivymd.uix.dialog import MDDialog
+
+# 🔥 Corrige tela branca/preta
+Window.clearcolor = (1, 1, 1, 1)
 
 
 class AppTarefas(MDApp):
@@ -30,6 +35,7 @@ class AppTarefas(MDApp):
     ARQUIVO = "tarefas.json"
 
     def build(self):
+
         self.theme_cls.primary_palette = "Indigo"
 
         self.tarefas = []
@@ -38,20 +44,29 @@ class AppTarefas(MDApp):
 
         self.carregar_dados()
 
+        # ROOT
         root = MDBoxLayout(
             orientation="vertical",
             padding=15,
-            spacing=10
+            spacing=10,
+            size_hint=(1, 1)
         )
 
         # INPUTS
-        self.input_nome = MDTextField(hint_text="Nome da tarefa")
-        self.input_hora = MDTextField(hint_text="Hora (HH:MM)")
+        self.input_nome = MDTextField(
+            hint_text="Nome da tarefa"
+        )
+
+        self.input_hora = MDTextField(
+            hint_text="Hora (HH:MM)"
+        )
 
         btn_add = MDRaisedButton(
             text="Adicionar",
-            on_release=self.adicionar
+            pos_hint={"center_x": 0.5}
         )
+
+        btn_add.bind(on_release=self.adicionar)
 
         root.add_widget(self.input_nome)
         root.add_widget(self.input_hora)
@@ -60,44 +75,76 @@ class AppTarefas(MDApp):
         # LISTA
         self.lista = MDBoxLayout(
             orientation="vertical",
-            size_hint_y=None
+            size_hint_y=None,
+            spacing=5
         )
-        self.lista.bind(minimum_height=self.lista.setter('height'))
 
-        scroll = ScrollView()
+        self.lista.bind(
+            minimum_height=self.lista.setter("height")
+        )
+
+        scroll = ScrollView(
+            size_hint=(1, 1)
+        )
+
         scroll.add_widget(self.lista)
 
         root.add_widget(scroll)
 
+        # FLOAT LAYOUT (corrige FAB Android)
+        layout_final = FloatLayout()
+
+        layout_final.add_widget(root)
+
         # FAB
         fab = MDFloatingActionButton(
             icon="plus",
-            pos_hint={"right": 0.95, "y": 0.02},
+            pos_hint={"right": 0.95, "y": 0.03}
+        )
+
+        fab.bind(
             on_release=lambda x: self.limpar_inputs()
         )
 
-        layout_final = MDBoxLayout()
-        layout_final.add_widget(root)
         layout_final.add_widget(fab)
 
         self.atualizar()
 
-        # 🔥 verifica alertas
-        Clock.schedule_interval(self.verificar_alertas, 20)
+        # 🔥 Verifica alertas
+        Clock.schedule_interval(
+            self.verificar_alertas,
+            20
+        )
 
         return layout_final
 
-    # -------- ARMAZENAMENTO ANDROID
+    # ----------------------------
+    # ARQUIVO
+    # ----------------------------
+
     def caminho_arquivo(self):
-        return os.path.join(self.user_data_dir, self.ARQUIVO)
+        return os.path.join(
+            self.user_data_dir,
+            self.ARQUIVO
+        )
 
     def carregar_dados(self):
+
         try:
+
             caminho = self.caminho_arquivo()
 
             if not os.path.exists(caminho):
+
                 with open(caminho, "w") as f:
-                    json.dump({"tarefas": [], "concluidas": []}, f)
+
+                    json.dump(
+                        {
+                            "tarefas": [],
+                            "concluidas": []
+                        },
+                        f
+                    )
 
             with open(caminho, "r") as f:
                 dados = json.load(f)
@@ -106,105 +153,159 @@ class AppTarefas(MDApp):
             self.concluidas = dados.get("concluidas", [])
 
         except Exception as e:
+
             print("Erro carregar:", e)
+
             self.tarefas = []
             self.concluidas = []
 
     def salvar_dados(self):
+
         try:
+
             caminho = self.caminho_arquivo()
 
             with open(caminho, "w") as f:
-                json.dump({
-                    "tarefas": self.tarefas,
-                    "concluidas": self.concluidas
-                }, f)
+
+                json.dump(
+                    {
+                        "tarefas": self.tarefas,
+                        "concluidas": self.concluidas
+                    },
+                    f
+                )
 
         except Exception as e:
             print("Erro salvar:", e)
 
-    # -------- FUNÇÕES
+    # ----------------------------
+    # FUNÇÕES
+    # ----------------------------
+
     def adicionar(self, obj):
-        if not self.input_nome.text.strip():
+
+        nome = self.input_nome.text.strip()
+        hora = self.input_hora.text.strip()
+
+        if not nome:
             return
 
-        self.tarefas.append({
-            "nome": self.input_nome.text,
-            "hora": self.input_hora.text or "00:00",
-            "data": datetime.now().strftime("%Y-%m-%d")
-        })
+        if not hora:
+            hora = "00:00"
+
+        self.tarefas.append(
+            {
+                "nome": nome,
+                "hora": hora,
+                "data": datetime.now().strftime("%Y-%m-%d")
+            }
+        )
 
         self.salvar_dados()
+
         self.atualizar()
+
         self.limpar_inputs()
 
     def atualizar(self):
+
         self.lista.clear_widgets()
 
-        for i, t in enumerate(self.tarefas):
-            item = TwoLineAvatarIconListItem(
-                text=t["nome"],
-                secondary_text=f"{t['data']} {t['hora']}"
+        for i, tarefa in enumerate(self.tarefas):
+
+            item = TwoLineListItem(
+                text=tarefa["nome"],
+                secondary_text=f"{tarefa['data']} {tarefa['hora']}"
             )
 
-            check = MDCheckbox()
-            check.bind(active=lambda x, v, idx=i: self.executar(idx) if v else None)
+            checkbox = MDCheckbox()
 
-            item.add_widget(check)
+            checkbox.bind(
+                active=lambda x, v, idx=i:
+                self.executar(idx) if v else None
+            )
+
+            item.add_widget(checkbox)
+
             self.lista.add_widget(item)
 
     def executar(self, idx):
-        try:
-            t = self.tarefas.pop(idx)
 
-            self.concluidas.append({
-                "nome": t["nome"],
-                "executado_em": datetime.now().strftime("%Y-%m-%d %H:%M")
-            })
+        try:
+
+            tarefa = self.tarefas.pop(idx)
+
+            self.concluidas.append(
+                {
+                    "nome": tarefa["nome"],
+                    "executado_em": datetime.now().strftime(
+                        "%Y-%m-%d %H:%M"
+                    )
+                }
+            )
 
             self.salvar_dados()
+
             self.atualizar()
 
         except Exception as e:
             print("Erro executar:", e)
 
     def limpar_inputs(self):
+
         self.input_nome.text = ""
         self.input_hora.text = ""
 
-    # -------- ALERTA (SEM PLYER)
-    def alerta(self, msg):
+    # ----------------------------
+    # ALERTA
+    # ----------------------------
+
+    def alerta(self, mensagem):
+
         try:
+
             if self.dialog:
                 self.dialog.dismiss()
 
             self.dialog = MDDialog(
                 title="⏰ Lembrete",
-                text=msg,
+                text=mensagem,
                 buttons=[
                     MDFlatButton(
                         text="OK",
-                        on_release=lambda x: self.dialog.dismiss()
+                        on_release=lambda x:
+                        self.dialog.dismiss()
                     )
-                ],
+                ]
             )
+
             self.dialog.open()
 
         except Exception as e:
             print("Erro alerta:", e)
 
     def verificar_alertas(self, dt):
+
         agora = datetime.now()
 
-        for t in self.tarefas:
+        for tarefa in self.tarefas:
+
             try:
-                dt_tarefa = datetime.strptime(
-                    f"{t['data']} {t['hora']}",
+
+                data_hora = datetime.strptime(
+                    f"{tarefa['data']} {tarefa['hora']}",
                     "%Y-%m-%d %H:%M"
                 )
 
-                if dt_tarefa - timedelta(minutes=10) <= agora < dt_tarefa:
-                    self.alerta(f"Tarefa: {t['nome']}")
+                if (
+                    data_hora - timedelta(minutes=10)
+                    <= agora
+                    < data_hora
+                ):
+
+                    self.alerta(
+                        f"Tarefa: {tarefa['nome']}"
+                    )
 
             except Exception as e:
                 print("Erro alerta tempo:", e)
