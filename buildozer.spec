@@ -11,7 +11,7 @@ orientation = portrait
 fullscreen = 0
 
 # Dependências estáveis (compatível com Xiaomi)
-requirements = python3==3.10.11,kivy==2.1.0,kivymd==1.1.1,cython==0.29.33,pyjnius==1.4.2
+requirements = python3==3.10.11,kivy==2.1.0,kivymd==1.0.2,cython==0.29.33,pyjnius==1.4.2
 
 # Permissões mínimas
 android.permissions = INTERNET
